@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EventCreate(BaseModel):
@@ -56,3 +56,24 @@ class AgentAction(BaseModel):
 class AgentCommandResponse(BaseModel):
     summary: str
     actions: list[AgentAction]
+
+
+class ChatRequest(BaseModel):
+    query: str = Field(min_length=1)
+    club_id: Optional[UUID] = None
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class DocumentMatch(BaseModel):
+    id: UUID
+    source: str
+    chunk_index: int
+    content: str
+    metadata: dict[str, Any] = {}
+    similarity: float
+
+
+class ChatResponse(BaseModel):
+    query: str
+    context: str
+    matches: list[DocumentMatch]
