@@ -50,3 +50,7 @@ export interface AgentCommandResponse {
   summary: string;
   actions: AgentAction[];
 }
+
+// Alias matching the UI issue's naming; `ClubEvent` avoids shadowing the DOM
+// `Event` global elsewhere in the codebase.
+export type Event = ClubEvent;
