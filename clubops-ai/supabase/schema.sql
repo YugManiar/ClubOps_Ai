@@ -91,3 +91,40 @@ as $$
   order by embedding <=> query_embedding
   limit match_count;
 $$;
+
+-- ── Club documents (RAG corpus: past events, retros, budgets, etc.) ─────
+-- Run this block on its own if the rest of the schema is already applied.
+create table if not exists club_documents (
+  id         uuid primary key default uuid_generate_v4(),
+  club_id    uuid references clubs(id) on delete cascade,
+  source     text not null,
+  chunk_index int not null default 0,
+  content    text not null,
+  metadata   jsonb not null default '{}',
+  embedding  vector(768) not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_club_documents_club_id on club_documents (club_id);
+create index if not exists idx_club_documents_embedding on club_documents
+  using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+
+-- Cosine-similarity search. match_club_id null = search every club.
+create or replace function match_club_documents(
+  query_embedding vector(768),
+  match_count     int default 5,
+  match_club_id   uuid default null
+)
+returns table (
+  id uuid, source text, chunk_index int, content text,
+  metadata jsonb, similarity float
+)
+language sql stable
+as $$
+  select id, source, chunk_index, content, metadata,
+         1 - (embedding <=> query_embedding) as similarity
+  from club_documents
+  where match_club_id is null or club_id = match_club_id
+  order by embedding <=> query_embedding
+  limit match_count;
+$$;

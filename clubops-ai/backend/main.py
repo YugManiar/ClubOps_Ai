@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import agent, events, tasks
+from app.routers import agent, chat, events, tasks
 
 app = FastAPI(title="ClubOps AI")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 app.include_router(events.router)
 app.include_router(tasks.router)
 app.include_router(agent.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")
