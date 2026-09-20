@@ -18,12 +18,12 @@ import {
 import { EventCompletion } from "@/components/event-completion";
 import { Input, Textarea } from "@/components/ui/input";
 import { api } from "@/lib/api";
-import { COLUMNS, PRIORITY, formatDate, initials } from "@/lib/ui-meta";
+import { COLUMNS, COLUMN_DOT, PRIORITY, formatDate, initials } from "@/lib/ui-meta";
 import { cn } from "@/lib/utils";
 import type { EventStatus, Member, Task, TaskPriority, TaskStatus } from "@/types/database";
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus:ring-2 focus:ring-primary";
+  "flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50";
 
 interface TaskBoardProps {
   eventId: string;
@@ -115,7 +115,7 @@ export function TaskBoard({
         />
       )}
       {saveError && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           {saveError}
         </p>
       )}
@@ -161,16 +161,21 @@ export function TaskBoard({
         {COLUMNS.map((col, colIdx) => {
           const items = visible.filter((t) => t.status === col.key);
           return (
-            <div key={col.key} className="space-y-3 rounded-lg bg-muted p-3">
-              <h3 className="flex items-center justify-between text-sm font-semibold">
-                {col.label}
-                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
+            <div key={col.key} className="rounded-xl border border-border/60 bg-muted/50 p-3">
+              <h3 className="flex items-center justify-between text-sm font-semibold tracking-tight">
+                <span className="flex items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", COLUMN_DOT[col.key])} />
+                  {col.label}
+                </span>
+                <span className="rounded-full bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">
                   {items.length}
                 </span>
               </h3>
 
+              {/* each column scrolls on its own, so 16 tasks in "To do" don't make the whole page 4000px tall */}
+              <div className="mt-3 max-h-[68vh] space-y-3 overflow-y-auto pr-1">
               {items.length === 0 && (
-                <p className="rounded-md border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                <p className="rounded-lg border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
                   No tasks
                 </p>
               )}
@@ -180,7 +185,7 @@ export function TaskBoard({
                 const prev = COLUMNS[colIdx - 1];
                 const next = COLUMNS[colIdx + 1];
                 return (
-                  <Card key={task.id} className="transition-shadow hover:shadow-md">
+                  <Card key={task.id} className="transition-all duration-150 hover:border-primary/30 hover:shadow-md">
                     <CardContent className="space-y-3 p-3 pt-3">
                       <button
                         className="block w-full space-y-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -206,7 +211,7 @@ export function TaskBoard({
                         </div>
                         {assignee ? (
                           <Avatar title={assignee.full_name}>
-                            <AvatarFallback>{initials(assignee.full_name)}</AvatarFallback>
+                            <AvatarFallback seed={assignee.full_name}>{initials(assignee.full_name)}</AvatarFallback>
                           </Avatar>
                         ) : (
                           <span className="text-xs text-muted-foreground">Unassigned</span>
@@ -236,6 +241,7 @@ export function TaskBoard({
                   </Card>
                 );
               })}
+              </div>
             </div>
           );
         })}
@@ -405,7 +411,7 @@ function NewTaskDialog({
             </select>
           </div>
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               {error}
             </p>
           )}

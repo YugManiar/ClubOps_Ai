@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { AlertTriangle, CalendarDays, ListTodo, Search, Users } from "lucide-react";
 
 import { CreateEventDialog } from "@/components/create-event-dialog";
 import { EventCard } from "@/components/event-card";
@@ -41,18 +41,19 @@ export function DashboardView({
     [events, query, filter]
   );
 
+  // `tone` picks the icon tile colour; these are theme tokens, so they follow light/dark.
   const stats = [
-    { label: "Events", value: events.length },
-    { label: "Open tasks", value: tasks.filter((t) => t.status !== "done").length },
-    { label: "Blocked", value: tasks.filter((t) => t.status === "blocked").length },
-    { label: "Members", value: members.length },
+    { label: "Events", value: events.length, Icon: CalendarDays, tone: "bg-primary/10 text-primary" },
+    { label: "Open tasks", value: tasks.filter((t) => t.status !== "done").length, Icon: ListTodo, tone: "bg-info/10 text-info" },
+    { label: "Blocked", value: tasks.filter((t) => t.status === "blocked").length, Icon: AlertTriangle, tone: "bg-warning/10 text-warning" },
+    { label: "Members", value: members.length, Icon: Users, tone: "bg-success/10 text-success" },
   ];
 
   return (
     <main className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Admin dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Admin dashboard</h1>
           <p className="text-sm text-muted-foreground">Everything your club is running, at a glance.</p>
         </div>
         <CreateEventDialog />
@@ -60,10 +61,15 @@ export function DashboardView({
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">{s.label}</p>
-              <p className="text-3xl font-semibold">{s.value}</p>
+          <Card key={s.label} className="animate-rise-in">
+            <CardContent className="flex items-center gap-4 p-5 pt-5">
+              <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl", s.tone)}>
+                <s.Icon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">{s.label}</p>
+                <p className="text-3xl font-semibold leading-tight tracking-tight">{s.value}</p>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -88,8 +94,8 @@ export function DashboardView({
                   onClick={() => setFilter(f)}
                   aria-pressed={filter === f}
                   className={cn(
-                    "rounded-full border border-border px-3 py-1 text-xs font-medium transition-colors hover:bg-muted",
-                    filter === f && "border-primary bg-primary text-primary-foreground hover:bg-primary"
+                    "rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                    filter === f && "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                   )}
                 >
                   {f === "all" ? "All" : EVENT_STATUS[f].label}
@@ -120,12 +126,12 @@ export function DashboardView({
         <aside>
           <Card>
             <CardContent className="space-y-3 p-4">
-              <h2 className="text-sm font-semibold">Team</h2>
+              <h2 className="text-sm font-semibold tracking-tight">Team</h2>
               <ul className="space-y-3">
                 {members.map((m) => (
                   <li key={m.id} className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{initials(m.full_name)}</AvatarFallback>
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback seed={m.full_name} className="text-xs">{initials(m.full_name)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{m.full_name}</p>
@@ -137,7 +143,7 @@ export function DashboardView({
                         </p>
                       )}
                     </div>
-                    <Badge variant={m.role === "leader" ? "default" : "muted"}>{m.role}</Badge>
+                    <Badge variant={m.role === "leader" ? "soft" : "muted"} className="capitalize">{m.role}</Badge>
                   </li>
                 ))}
               </ul>

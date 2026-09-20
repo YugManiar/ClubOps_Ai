@@ -16,12 +16,12 @@ export function EventCard({ event, tasks }: { event: ClubEvent; tasks: Task[] })
   return (
     <Link
       href={`/events/${event.id}`}
-      className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <Card className="h-full transition-shadow hover:shadow-md">
+      <Card className="h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/30 group-hover:shadow-md">
         <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
-          <CardTitle className="leading-snug">{event.name}</CardTitle>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <CardTitle className="leading-snug transition-colors group-hover:text-accent-foreground">{event.name}</CardTitle>
+          <Badge variant={status.variant} className="shrink-0">{status.label}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {event.description && (

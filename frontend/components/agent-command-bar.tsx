@@ -38,8 +38,8 @@ export function AgentCommandBar({ eventId }: { eventId: string }) {
   return (
     <Card>
       <CardContent className="space-y-3 p-4 pt-4">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Sparkles className="h-4 w-4" /> Agent
+        <div className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+          <Sparkles className="h-4 w-4 text-primary" /> Agent
         </div>
         <Textarea
           className="min-h-24 resize-y"
@@ -54,14 +54,14 @@ export function AgentCommandBar({ eventId }: { eventId: string }) {
           </Button>
         </div>
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}
         {result && (
           <div
-            className={`space-y-1 rounded-md border p-3 text-sm ${
-              result.failed > 0 ? "border-amber-500/60 bg-amber-50/50" : "border-border"
+            className={`space-y-1 rounded-lg border p-3 text-sm ${
+              result.failed > 0 ? "border-warning/40 bg-warning/5" : "border-border bg-muted/40"
             }`}
           >
             <p>{result.summary}</p>
@@ -71,7 +71,7 @@ export function AgentCommandBar({ eventId }: { eventId: string }) {
               {result.actions.map((a, i) => {
                 const failure = typeof a.result?.error === "string" ? a.result.error : null;
                 return (
-                  <li key={i} className={failure ? "text-amber-700" : undefined}>
+                  <li key={i} className={failure ? "text-warning" : undefined}>
                     {a.tool}
                     {failure && ` — ${failure}`}
                   </li>

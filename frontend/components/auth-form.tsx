@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Sparkles, User } from "lucide-react";
+import { ListChecks, ShieldCheck, Sparkles, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -136,13 +136,20 @@ export function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center gap-6">
-      <div className="flex items-center justify-center gap-2 text-xl font-semibold">
-        <Sparkles className="h-6 w-6" /> ClubOps AI
+    <div className="flex min-h-[calc(100vh-8rem)] items-center">
+    <div className="mx-auto grid min-h-[34rem] w-full max-w-4xl animate-rise-in overflow-hidden rounded-2xl border border-border bg-card shadow-lg lg:grid-cols-[1.05fr_1fr]">
+      <BrandPanel />
+
+      <div className="flex flex-col justify-center gap-6 p-6 sm:p-10">
+      <div className="flex items-center gap-2.5 text-lg font-semibold tracking-tight lg:hidden">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+          <Sparkles className="h-4 w-4" />
+        </span>
+        ClubOps AI
       </div>
 
-      <Card>
-        <CardContent className="space-y-4 p-6 pt-6">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardContent className="space-y-4 p-0">
           {checkEmail ? (
             <div className="space-y-2 text-center">
               <h1 className="text-lg font-semibold">Check your email</h1>
@@ -185,8 +192,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
                             "cursor-pointer rounded-md border p-3 transition",
                             "focus-within:ring-2 focus-within:ring-primary",
                             role === value
-                              ? "border-foreground bg-muted"
-                              : "border-border hover:bg-muted/50"
+                              ? "border-primary bg-accent text-accent-foreground ring-1 ring-primary/30"
+                              : "border-border bg-card hover:bg-accent/50"
                           )}
                         >
                           <input
@@ -250,7 +257,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 </p>
               )}
               {error && (
-                <p role="alert" className="text-sm text-red-600">
+                <p role="alert" className="text-sm text-danger">
                   {error}
                 </p>
               )}
@@ -266,11 +273,56 @@ export function AuthForm({ mode }: { mode: Mode }) {
       {!checkEmail && (
         <p className="text-center text-sm text-muted-foreground">
           {isSignup ? "Already have an account? " : "New to ClubOps? "}
-          <Link href={isSignup ? "/login" : "/signup"} className="font-medium text-foreground underline">
+          <Link href={isSignup ? "/login" : "/signup"} className="font-medium text-accent-foreground hover:underline">
             {isSignup ? "Log in" : "Sign up"}
           </Link>
         </p>
       )}
+      </div>
+    </div>
+    </div>
+  );
+}
+
+/** Left half of the auth screen (hidden on phones, where the form has the whole width). */
+function BrandPanel() {
+  const points = [
+    { Icon: Sparkles, text: "Describe an event in a sentence and the AI drafts the plan and its tasks." },
+    { Icon: ListChecks, text: "Assign work, then watch it move across the board to done." },
+    { Icon: ShieldCheck, text: "Every club's data stays separate from every other's." },
+  ];
+  return (
+    <div className="relative hidden flex-col justify-between overflow-hidden bg-primary p-10 text-primary-foreground lg:flex">
+      {/* soft light blobs: pure decoration, aria-hidden */}
+      <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-black/20 blur-3xl" />
+
+      <div className="relative flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+        <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/15 ring-1 ring-inset ring-white/25">
+          <Sparkles className="h-5 w-5" />
+        </span>
+        ClubOps AI
+      </div>
+
+      <div className="relative space-y-6">
+        <h2 className="text-3xl font-semibold leading-tight tracking-tight">
+          Run every club event
+          <br />
+          from one place.
+        </h2>
+        <ul className="space-y-4">
+          {points.map(({ Icon, text }) => (
+            <li key={text} className="flex items-start gap-3 text-sm text-primary-foreground/85">
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/15">
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              {text}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <p className="relative text-xs text-primary-foreground/60">Agentic event operations for college clubs.</p>
     </div>
   );
 }
