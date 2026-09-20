@@ -12,7 +12,7 @@ from app.auth import jwks_client
 from app.config import settings
 from app.db import supabase
 from app.limits import GlobalRateLimitMiddleware, limiter
-from app.routers import agent, events, feedback, knowledge, planning, tasks
+from app.routers import agent, events, feedback, knowledge, me, planning, tasks
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -90,8 +90,11 @@ app.include_router(agent.router)
 app.include_router(planning.router)
 app.include_router(feedback.router)
 app.include_router(knowledge.router)
+app.include_router(me.router)
 
-
+@app.get("/")
+def root():
+    return {"message": "ClubOps AI Backend is running"}
 @app.get("/health")
 def health():
     """Exempt from the global ceiling (see exempt_paths above) so load-balancer
