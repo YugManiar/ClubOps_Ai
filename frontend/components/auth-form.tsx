@@ -3,16 +3,46 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { ShieldCheck, Sparkles, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { dashboardPath } from "@/lib/config";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import type { MemberRole } from "@/types/database";
 
 type Mode = "login" | "signup";
+
+/**
+ * The role picked here is sent as user metadata and read by the
+ * handle_auth_user trigger (supabase/migrations/008_signup_role_choice.sql).
+ *
+ * It is NOT verified. Anyone reaching this form can pick "Club leader" and get
+ * read access to the whole club plus the agent's write tools. That is a
+ * deliberate choice for the demo -- see the banner in 008 for the three ways
+ * to gate it before real data lands in the database.
+ *
+ * Three things still override this choice, all server-side:
+ *   - an existing member row keeps the role it already has;
+ *   - a club_invites row wins (a leader's explicit grant beats a self-claim);
+ *   - the first account in a club with no leader becomes the leader anyway.
+ */
+const ROLE_OPTIONS: { value: MemberRole; label: string; blurb: string; Icon: typeof User }[] = [
+  {
+    value: "member",
+    label: "Member",
+    blurb: "See the tasks assigned to you and the feedback on your work.",
+    Icon: User,
+  },
+  {
+    value: "leader",
+    label: "Club leader",
+    blurb: "Plan events with AI, assign tasks, and review the whole club.",
+    Icon: ShieldCheck,
+  },
+];
 
 /** Turn Supabase auth errors into something a person can act on. */
 function friendlyAuthError(err: { message: string; code?: string; status?: number }) {
@@ -33,6 +63,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const supabase = createClient();
 
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<MemberRole>("member");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -76,7 +107,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
           email: email.trim(),
           password,
           options: {
-            data: { full_name: fullName.trim() },
+            // `role` is read by the handle_auth_user trigger. Unverified by
+            // design -- see ROLE_OPTIONS above.
+            data: { full_name: fullName.trim(), role },
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
@@ -128,16 +161,52 @@ export function AuthForm({ mode }: { mode: Mode }) {
               </div>
 
               {isSignup && (
-                <label className="block space-y-1 text-sm font-medium">
-                  Full name
-                  <Input
-                    required
-                    autoComplete="name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Priya Nair"
-                  />
-                </label>
+                <>
+                  <label className="block space-y-1 text-sm font-medium">
+                    Full name
+                    <Input
+                      required
+                      autoComplete="name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Priya Nair"
+                    />
+                  </label>
+
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium">I am joining as</legend>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {ROLE_OPTIONS.map(({ value, label, blurb, Icon }) => (
+                        <label
+                          key={value}
+                          className={cn(
+                            "cursor-pointer rounded-md border p-3 transition",
+                            "focus-within:ring-2 focus-within:ring-primary",
+                            role === value
+                              ? "border-foreground bg-muted"
+                              : "border-border hover:bg-muted/50"
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="role"
+                            value={value}
+                            checked={role === value}
+                            onChange={() => setRole(value)}
+                            className="sr-only"
+                          />
+                          <span className="flex items-center gap-2 text-sm font-medium">
+                            <Icon className="h-4 w-4 shrink-0" />
+                            {label}
+                          </span>
+                          <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                            {blurb}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                </>
               )}
               <label className="block space-y-1 text-sm font-medium">
                 Email
