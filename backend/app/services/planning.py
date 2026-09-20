@@ -1,5 +1,9 @@
-"""POST /api/events/plan: free text -> strict JSON plan -> Supabase rows."""
+"""POST /api/events/plan: free text -> strict JSON plan -> Supabase rows.
 
+Called from a background task, not from the request. See routers/planning.py.
+"""
+
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 from uuid import UUID
@@ -10,6 +14,8 @@ from app.config import settings
 from app.db import supabase
 from app.services.agent_tools import _log_action
 from app.services.gemini import GeminiError, generate_structured
+
+log = logging.getLogger(__name__)
 
 TASK_COUNT = 15
 MIN_TASKS = 5
@@ -81,7 +87,17 @@ def plan_and_save_event(
         ]
         tasks = supabase.table("tasks").insert(rows).execute().data
     except Exception:
-        supabase.table("events").delete().eq("id", event["id"]).execute()
+        # Compensating delete. If it fails too we are left with an empty event,
+        # so say so loudly rather than losing it behind the original traceback.
+        try:
+            supabase.table("events").delete().eq("id", event["id"]).execute()
+        except Exception:
+            log.error(
+                "ORPHANED EVENT %s: tasks insert failed and the compensating "
+                "delete failed too; this event has no tasks and needs manual cleanup",
+                event["id"],
+                exc_info=True,
+            )
         raise
 
     _log_action(event["id"], "plan_event", {"prompt": prompt, "task_count": len(tasks)})

@@ -18,6 +18,10 @@ from app.services.gemini import GeminiError, embed_with_retry
 
 CHUNK_SIZE = 1000  # characters
 CHUNK_OVERLAP = 150
+# Cosine floor below which a chunk is treated as irrelevant rather than as the
+# best available answer. Mirrors the default in match_club_documents (007);
+# tune against the real corpus before launch.
+MIN_SIMILARITY = 0.6
 EMBED_BATCH_SIZE = 100  # Gemini batch embedding limit
 INSERT_BATCH_SIZE = 100
 SUPPORTED_SUFFIXES = {".md", ".txt"}
@@ -129,10 +133,25 @@ def ingest_path(path: Path, club_id: str | None) -> dict[str, int]:
 
 
 def search_documents(query: str, top_k: int = 5, club_id: str | None = None) -> list[dict]:
-    """Embed the query and return the top_k most similar chunks (cosine)."""
+    """Embed the query and return the top_k most similar chunks (cosine) from
+    one club, dropping anything below MIN_SIMILARITY.
+
+    An empty list is a valid, meaningful answer: it means the corpus has nothing
+    relevant. Callers must treat it as "no grounding" and refuse to generate,
+    never as "retrieval failed" -- returning the nearest unrelated chunks is how
+    a RAG system produces a confident hallucination with a citation attached.
+    """
+    if not club_id:
+        # No wildcard search. Passing None used to query every tenant's corpus.
+        raise ValueError("club_id is required for document search")
     response = supabase.rpc(
         "match_club_documents",
-        {"query_embedding": embed_query(query), "match_count": top_k, "match_club_id": club_id},
+        {
+            "query_embedding": embed_query(query),
+            "match_count": top_k,
+            "match_club_id": club_id,
+            "min_similarity": MIN_SIMILARITY,
+        },
     ).execute()
     return response.data or []
 
@@ -140,7 +159,9 @@ def search_documents(query: str, top_k: int = 5, club_id: str | None = None) -> 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ingest .md/.txt files into club_documents")
     parser.add_argument("path", type=Path, nargs="?", default=Path("knowledge"))
-    parser.add_argument("--club-id", default=settings.default_club_id)
+    # Required: documents are tenant data, and there is no safe default club.
+    parser.add_argument("--club-id", default=settings.default_club_id,
+                        required=settings.default_club_id is None)
     args = parser.parse_args()
 
     results = ingest_path(args.path, args.club_id)
