@@ -33,7 +33,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           <ArrowLeft className="h-4 w-4" /> Back to dashboard
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold">{event.name}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{event.name}</h1>
           <Badge variant={status.variant}>{status.label}</Badge>
         </div>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">

@@ -122,7 +122,7 @@ export function FeedbackDialog({ events, members, defaultEventId, label = "Give 
             onChange={(e) => setComment(e.target.value)}
           />
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               {error}
             </p>
           )}

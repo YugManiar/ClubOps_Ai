@@ -42,7 +42,7 @@ export function DeleteAccount({ email, role }: { email: string; role: MemberRole
   }
 
   return (
-    <Card className="border-danger">
+    <Card className="border-destructive/30 bg-destructive/[0.03]">
       <CardContent className="space-y-4 p-5 pt-5">
         <div className="flex items-center gap-2 font-semibold text-danger">
           <AlertTriangle className="h-4 w-4" /> Delete account
@@ -71,7 +71,7 @@ export function DeleteAccount({ email, role }: { email: string; role: MemberRole
         </label>
 
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}
@@ -79,7 +79,7 @@ export function DeleteAccount({ email, role }: { email: string; role: MemberRole
         <Button
           onClick={remove}
           disabled={!matches || busy}
-          className="bg-danger text-white hover:opacity-90"
+          variant="destructive"
         >
           {busy ? "Deleting..." : "Delete my account"}
         </Button>

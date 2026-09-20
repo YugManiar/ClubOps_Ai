@@ -10,7 +10,7 @@ import { COLUMNS, PRIORITY, formatDate } from "@/lib/ui-meta";
 import type { ClubEvent, Task, TaskStatus } from "@/types/database";
 
 const selectClass =
-  "h-8 rounded-md border border-border bg-transparent px-2 text-xs outline-none focus:ring-2 focus:ring-primary";
+  "h-8 rounded-md border border-input bg-card px-2 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30";
 
 /** A member's own tasks (RLS already limits the query to what is assigned to them). */
 export function MyTasks({ tasks: initial, events }: { tasks: Task[]; events: ClubEvent[] }) {
@@ -42,20 +42,20 @@ export function MyTasks({ tasks: initial, events }: { tasks: Task[]; events: Clu
   return (
     <div className="space-y-2">
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
       {tasks.map((t) => {
         const event = events.find((e) => e.id === t.event_id);
         return (
-          <Card key={t.id}>
+          <Card key={t.id} className="transition-colors hover:border-primary/30">
             <CardContent className="flex flex-col gap-3 p-4 pt-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{t.title}</p>
                 <p className="text-xs text-muted-foreground">
                   {event && (
-                    <Link href={`/events/${event.id}`} className="underline">
+                    <Link href={`/events/${event.id}`} className="underline-offset-2 hover:text-accent-foreground hover:underline">
                       {event.name}
                     </Link>
                   )}

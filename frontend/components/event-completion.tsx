@@ -93,7 +93,7 @@ export function EventCompletion({
         </div>
         <Progress value={percent} />
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}
