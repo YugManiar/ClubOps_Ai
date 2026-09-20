@@ -42,7 +42,9 @@ def _unauthorized(detail: str) -> HTTPException:
 
 
 @lru_cache
-def _jwks_client() -> jwt.PyJWKClient:
+def jwks_client() -> jwt.PyJWKClient:
+    """Cached JWKS client. main.py warms this at startup so a bad or unreachable
+    SUPABASE_JWKS_URL fails the boot instead of every request."""
     if not settings.supabase_jwks_url:
         raise RuntimeError("SUPABASE_JWKS_URL is not configured")
     return jwt.PyJWKClient(settings.supabase_jwks_url, cache_keys=True, lifespan=3600)
@@ -50,7 +52,7 @@ def _jwks_client() -> jwt.PyJWKClient:
 
 def _decode(token: str) -> dict:
     try:
-        key = _jwks_client().get_signing_key_from_jwt(token).key
+        key = jwks_client().get_signing_key_from_jwt(token).key
         return jwt.decode(
             token,
             key,

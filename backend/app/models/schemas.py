@@ -2,14 +2,14 @@ from datetime import datetime
 from typing import Literal, Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EventCreate(BaseModel):
     club_id: UUID
-    name: str
-    description: Optional[str] = None
-    location: Optional[str] = None
+    name: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=5000)
+    location: Optional[str] = Field(default=None, max_length=200)
     start_time: datetime
     end_time: Optional[datetime] = None
 
@@ -46,7 +46,8 @@ class TaskStatusUpdate(BaseModel):
 
 class AgentCommandRequest(BaseModel):
     event_id: UUID
-    prompt: str
+    # Bounded: this is untrusted text that becomes Gemini input.
+    prompt: str = Field(min_length=1, max_length=10000)
 
 
 class AgentAction(BaseModel):
@@ -58,3 +59,20 @@ class AgentAction(BaseModel):
 class AgentCommandResponse(BaseModel):
     summary: str
     actions: list[AgentAction]
+    #: Actions the agent attempted that did not succeed. The agent writes row by
+    #: row with no transaction, so a partial run must be visible to the caller
+    #: rather than hidden behind a summary the model wrote before it knew.
+    failed: int = 0
+    #: True when the loop hit MAX_TOOL_TURNS with work still outstanding.
+    truncated: bool = False
+
+
+class PlanJobOut(BaseModel):
+    """A queued /api/events/plan run. See routers/planning.py for why planning
+    is asynchronous."""
+
+    id: UUID
+    status: Literal["pending", "running", "done", "failed"]
+    event_id: Optional[UUID] = None
+    error: Optional[str] = None
+    created_at: datetime
