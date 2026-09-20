@@ -14,6 +14,16 @@ import type { MemberRole } from "@/types/database";
 
 type Mode = "login" | "signup";
 
+/** Turn Supabase auth errors into something a person can act on. */
+function friendlyAuthError(err: { message: string; code?: string; status?: number }) {
+  if (err.code === "over_email_send_rate_limit" || err.status === 429) {
+    return "Too many sign-up emails have been sent recently. Please wait about an hour and try again, or ask your club admin to turn off email confirmation.";
+  }
+  if (err.code === "email_address_invalid") return "That email address isn't accepted. Try a different one.";
+  if (err.code === "weak_password") return "That password is too weak. Use at least 8 characters with a mix of letters and numbers.";
+  return err.message;
+}
+
 // Only follow same-site paths; never an external URL from ?next=.
 const safeNext = (next: string | null) => (next && next.startsWith("/") && !next.startsWith("//") ? next : null);
 
@@ -70,7 +80,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
-        if (error) return setError(error.message);
+        if (error) return setError(friendlyAuthError(error));
         // With email confirmation on, an already-registered address returns a user with no identities.
         if (data.user && data.user.identities?.length === 0) {
           return setError("An account with this email already exists. Try logging in.");
