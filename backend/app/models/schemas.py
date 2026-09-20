@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Literal, Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -41,7 +41,7 @@ class TaskOut(BaseModel):
 
 
 class TaskStatusUpdate(BaseModel):
-    status: str
+    status: Literal["todo", "in_progress", "blocked", "done"]
 
 
 class AgentCommandRequest(BaseModel):

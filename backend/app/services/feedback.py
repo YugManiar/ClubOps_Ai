@@ -26,11 +26,9 @@ class FeedbackVerdict(BaseModel):
     message: str
 
 
-def submit_feedback(event_id: UUID, member_id: UUID | None, rating: int, comment: str) -> dict:
-    event = supabase.table("events").select("id").eq("id", str(event_id)).limit(1).execute()
-    if not event.data:
-        raise LookupError("event not found")
-
+def submit_feedback(
+    event_id: UUID, author_id: UUID, subject_id: UUID | None, rating: int, comment: str
+) -> dict:
     verdict: FeedbackVerdict | None = None
     if comment:
         verdict = generate_structured(
@@ -45,7 +43,8 @@ def submit_feedback(event_id: UUID, member_id: UUID | None, rating: int, comment
     supabase.table("feedback").insert(
         {
             "event_id": str(event_id),
-            "member_id": str(member_id) if member_id else None,
+            "member_id": str(author_id),
+            "subject_member_id": str(subject_id) if subject_id else None,
             "rating": rating,
             "raw_comment": comment or None,
             "validated_comment": verdict.validated_comment if verdict else None,
