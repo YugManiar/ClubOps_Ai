@@ -2,66 +2,70 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/input";
+import { api } from "@/lib/api";
 import type { AgentCommandResponse } from "@/types/database";
 
-/**
- * The core interaction of the whole product. Type a command or paste raw
- * meeting notes -> POST /agent/command -> Gemini function-calls into
- * Supabase -> board refreshes.
- */
 export function AgentCommandBar({ eventId }: { eventId: string }) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AgentCommandResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function runCommand() {
-    if (!prompt.trim()) return;
-    setLoading(true);
-    setResult(null);
+  async function run() {
+    setBusy(true);
+    setError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/agent/command`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_id: eventId, prompt }),
+      const res = await api.post<AgentCommandResponse>("/agent/command", {
+        event_id: eventId,
+        prompt: prompt.trim(),
       });
-      const data: AgentCommandResponse = await res.json();
-      setResult(data);
+      setResult(res);
       setPrompt("");
-      router.refresh();
+      router.refresh(); // task board re-reads from Supabase
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
   return (
     <Card>
-      <CardContent className="space-y-3 p-4">
-        <textarea
-          className="min-h-24 w-full resize-y rounded-md border border-border bg-transparent p-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+      <CardContent className="space-y-3 p-4 pt-4">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Sparkles className="h-4 w-4" /> Agent
+        </div>
+        <Textarea
+          className="min-h-24 resize-y"
           placeholder="Paste meeting notes or type a command, e.g. 'Assign venue booking to Priya, due Friday'"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
         />
-        <Button onClick={runCommand} disabled={loading}>
-          {loading ? "Running agent..." : "Run agent"}
-        </Button>
-
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">The agent will turn this into tasks.</p>
+          <Button disabled={busy || !prompt.trim()} onClick={run}>
+            {busy ? "Running..." : "Run agent"}
+          </Button>
+        </div>
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
         {result && (
-          <div className="space-y-2 rounded-md bg-muted p-3 text-sm">
-            <p className="font-medium">{result.summary}</p>
-            {result.actions.length > 0 && (
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                {result.actions.map((a, i) => (
-                  <li key={i}>
-                    <code>{a.tool}</code> → {JSON.stringify(a.result)}
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="space-y-1 rounded-md border border-border p-3 text-sm">
+            <p>{result.summary}</p>
+            <ul className="list-disc pl-5 text-xs text-muted-foreground">
+              {result.actions.map((a, i) => (
+                <li key={i}>{a.tool}</li>
+              ))}
+            </ul>
           </div>
         )}
       </CardContent>
