@@ -40,8 +40,36 @@ class TaskOut(BaseModel):
     created_at: datetime
 
 
+TaskStatus = Literal["todo", "in_progress", "blocked", "done"]
+TaskPriority = Literal["low", "medium", "high", "urgent"]
+
+
 class TaskStatusUpdate(BaseModel):
-    status: Literal["todo", "in_progress", "blocked", "done"]
+    status: TaskStatus
+
+
+class TaskCreate(BaseModel):
+    """Manual task creation (leader only). The club is never in the body: it is
+    derived from the event, which the router checks against the caller's club."""
+
+    event_id: UUID
+    title: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=5000)
+    priority: TaskPriority = "medium"
+    assignee_id: Optional[UUID] = None
+    due_date: Optional[datetime] = None
+
+
+class TaskUpdate(BaseModel):
+    """Partial update: only the fields the client sent are changed.
+
+    `assignee_id: null` is a real instruction (unassign) and is different from
+    leaving the field out, so the router reads `model_fields_set` rather than
+    treating None as "not provided"."""
+
+    status: Optional[TaskStatus] = None
+    priority: Optional[TaskPriority] = None
+    assignee_id: Optional[UUID] = None
 
 
 class AgentCommandRequest(BaseModel):
