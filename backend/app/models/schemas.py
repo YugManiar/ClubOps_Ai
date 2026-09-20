@@ -23,6 +23,8 @@ class EventOut(BaseModel):
     start_time: datetime
     end_time: Optional[datetime] = None
     status: str
+    average_rating: float = 0
+    rating_count: int = 0
     created_at: datetime
 
 
