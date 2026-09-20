@@ -11,3 +11,7 @@ backend/.env
 
 # misc
 .DS_Store
+
+# database connection string for supabase/run_migrations.py -- never commit
+supabase/.dbconn
+.dbconn
