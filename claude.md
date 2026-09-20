@@ -122,7 +122,8 @@ prompt in `gemini_client.py` forces tool calls for anything actionable, and
 | POST   | `/events`                | manual event create (bypass agent)        |
 | POST   | `/events/{id}/complete`  | leader marks event completed; 409 unless every task is done |
 | GET    | `/tasks?event_id=`       | list tasks for an event                   |
-| PATCH  | `/tasks/{id}`            | manual status update                      |
+| POST   | `/tasks`                 | leader creates a task (persisted)         |
+| PATCH  | `/tasks/{id}`            | status / priority / assignee; members may only move their own task's status |
 | POST   | `/agent/command`         | **the agent** — NL in, DB mutation out    |
 | POST   | `/api/events/plan`       | queue a plan; returns `202 {job_id}`      |
 | GET    | `/api/events/plan/{id}`  | poll a queued plan                        |
