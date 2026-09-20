@@ -15,11 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EventCompletion } from "@/components/event-completion";
 import { Input, Textarea } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { COLUMNS, PRIORITY, formatDate, initials } from "@/lib/ui-meta";
 import { cn } from "@/lib/utils";
-import type { Member, Task, TaskPriority, TaskStatus } from "@/types/database";
+import type { EventStatus, Member, Task, TaskPriority, TaskStatus } from "@/types/database";
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm outline-none focus:ring-2 focus:ring-primary";
@@ -30,9 +31,19 @@ interface TaskBoardProps {
   members: Member[];
   /** Demo-only stand-in for the logged-in user (no auth yet). */
   currentMemberId: string | null;
+  /** Leaders get the "complete event" bar; members never see it. */
+  isLeader?: boolean;
+  eventStatus?: EventStatus;
 }
 
-export function TaskBoard({ eventId, initialTasks, members, currentMemberId }: TaskBoardProps) {
+export function TaskBoard({
+  eventId,
+  initialTasks,
+  members,
+  currentMemberId,
+  isLeader = false,
+  eventStatus,
+}: TaskBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -43,6 +54,12 @@ export function TaskBoard({ eventId, initialTasks, members, currentMemberId }: T
   const [mineOnly, setMineOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
+  // "New task" is local-state only (ids are `local-N`, never saved), so those
+  // must not count: the server has never heard of them and will not see them
+  // when it checks whether every task is done.
+  const persisted = useMemo(() => tasks.filter((t) => !t.id.startsWith("local-")), [tasks]);
+  const doneCount = persisted.filter((t) => t.status === "done").length;
 
   const memberById = (id: string | null) => members.find((m) => m.id === id) ?? null;
   const selected = tasks.find((t) => t.id === selectedId) ?? null;
@@ -94,6 +111,14 @@ export function TaskBoard({ eventId, initialTasks, members, currentMemberId }: T
 
   return (
     <section className="space-y-4">
+      {isLeader && eventStatus && (
+        <EventCompletion
+          eventId={eventId}
+          status={eventStatus}
+          done={doneCount}
+          total={persisted.length}
+        />
+      )}
       {saveError && (
         <p role="alert" className="text-sm text-red-600">
           {saveError}

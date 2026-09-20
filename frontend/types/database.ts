@@ -51,16 +51,35 @@ export interface Feedback {
   created_at: string;
 }
 
-/** Contract for POST /api/events/plan (backend, phase 3). */
+/**
+ * Contract for POST /api/events/plan.
+ *
+ * No club_id: the backend takes the club from the caller's verified token, so
+ * there is nothing here that could disagree with it. Planning is asynchronous
+ * (a Gemini generation of ~15 tasks outlives any proxy's request ceiling), so
+ * this returns a job to poll rather than the finished event.
+ */
 export interface PlanEventRequest {
-  club_id: string;
   prompt: string;
   start_time?: string;
   location?: string;
 }
-export interface PlanEventResponse {
-  event: ClubEvent;
-  tasks: Task[];
+
+export interface PlanAccepted {
+  job_id: string;
+  status: string;
+}
+
+export type PlanJobStatus = "pending" | "running" | "done" | "failed";
+
+/** GET /api/events/plan/{job_id} */
+export interface PlanJob {
+  id: string;
+  status: PlanJobStatus;
+  /** Set once status is "done". */
+  event_id: string | null;
+  error: string | null;
+  created_at: string;
 }
 
 /** Contract for POST /api/feedback/submit (backend, phase 3). */
@@ -101,6 +120,12 @@ export interface AgentAction {
 export interface AgentCommandResponse {
   summary: string;
   actions: AgentAction[];
+  /** Actions that did not succeed. The agent writes row by row with no
+   *  transaction, so a partial run must be shown, not hidden behind a summary
+   *  the model wrote before it knew the outcome. */
+  failed: number;
+  /** True when the agent hit its tool-turn ceiling with work outstanding. */
+  truncated: boolean;
 }
 
 // Alias matching the UI issue's naming; `ClubEvent` avoids shadowing the DOM

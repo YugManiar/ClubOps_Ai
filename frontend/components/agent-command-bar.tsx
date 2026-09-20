@@ -59,12 +59,24 @@ export function AgentCommandBar({ eventId }: { eventId: string }) {
           </p>
         )}
         {result && (
-          <div className="space-y-1 rounded-md border border-border p-3 text-sm">
+          <div
+            className={`space-y-1 rounded-md border p-3 text-sm ${
+              result.failed > 0 ? "border-amber-500/60 bg-amber-50/50" : "border-border"
+            }`}
+          >
             <p>{result.summary}</p>
+            {/* The agent writes row by row with no transaction, so a partial
+                run has to be visible per action, not just counted. */}
             <ul className="list-disc pl-5 text-xs text-muted-foreground">
-              {result.actions.map((a, i) => (
-                <li key={i}>{a.tool}</li>
-              ))}
+              {result.actions.map((a, i) => {
+                const failure = typeof a.result?.error === "string" ? a.result.error : null;
+                return (
+                  <li key={i} className={failure ? "text-amber-700" : undefined}>
+                    {a.tool}
+                    {failure && ` — ${failure}`}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

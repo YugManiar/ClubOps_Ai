@@ -73,6 +73,8 @@ export default async function EventDetailPage({ params }: { params: { id: string
         initialTasks={tasks}
         members={members}
         currentMemberId={me.id}
+        isLeader={isLeader}
+        eventStatus={event.status}
       />
 
       {feedback.length > 0 && (

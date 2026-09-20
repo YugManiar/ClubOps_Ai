@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
@@ -16,8 +16,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input, Textarea } from "@/components/ui/input";
 import { api } from "@/lib/api";
-import { DEMO_CLUB_ID } from "@/lib/config";
-import type { PlanEventRequest, PlanEventResponse } from "@/types/database";
+import type { PlanAccepted, PlanEventRequest, PlanJob } from "@/types/database";
+
+/** Planning is queued server-side, so the browser polls instead of holding a
+ *  request open past every proxy's timeout. */
+const POLL_MS = 2000;
+const POLL_CEILING = 90; // 90 * 2s = 3 minutes, then we stop and tell the user
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function CreateEventDialog() {
   const router = useRouter();
@@ -28,25 +34,49 @@ export function CreateEventDialog() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Polling must stop if the component goes away mid-plan.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
+      // No club_id: the backend takes it from the token.
       const body: PlanEventRequest = {
-        club_id: DEMO_CLUB_ID,
         prompt: prompt.trim(),
         ...(startTime && { start_time: new Date(startTime).toISOString() }),
         ...(location.trim() && { location: location.trim() }),
       };
-      const { event } = await api.post<PlanEventResponse>("/api/events/plan", body);
-      setOpen(false);
-      router.push(`/events/${event.id}`);
-      router.refresh();
+      const { job_id } = await api.post<PlanAccepted>("/api/events/plan", body);
+
+      for (let i = 0; i < POLL_CEILING; i++) {
+        await sleep(POLL_MS);
+        if (!alive.current) return;
+        const job = await api.get<PlanJob>(`/api/events/plan/${job_id}`);
+        if (job.status === "done" && job.event_id) {
+          setOpen(false);
+          router.push(`/events/${job.event_id}`);
+          router.refresh();
+          return;
+        }
+        if (job.status === "failed") {
+          setError(job.error ?? "Planning failed. Please try again.");
+          return;
+        }
+      }
+      // The job may still land; don't imply it was lost.
+      setError("Still planning. Check your dashboard in a minute.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
-      setBusy(false);
+      if (alive.current) setBusy(false);
     }
   }
 
@@ -94,7 +124,7 @@ export function CreateEventDialog() {
           )}
           <DialogFooter>
             <Button type="submit" disabled={busy || prompt.trim().length < 3}>
-              {busy ? "Planning... (can take ~20s)" : "Create event"}
+              {busy ? "Planning... (can take ~30s)" : "Create event"}
             </Button>
           </DialogFooter>
         </form>
