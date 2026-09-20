@@ -13,8 +13,14 @@ export interface Member {
   club_id: string;
   full_name: string;
   email: string;
-  role: "lead" | "officer" | "member";
+  role: MemberRole;
+  auth_user_id: string | null;
+  /** Average of leader feedback about this member; maintained by a DB trigger. */
+  average_rating: number;
+  rating_count: number;
 }
+
+export type MemberRole = "leader" | "member";
 
 export interface ClubEvent {
   id: string;
@@ -34,7 +40,10 @@ export interface ClubEvent {
 export interface Feedback {
   id: string;
   event_id: string;
+  /** Author (a leader). */
   member_id: string | null;
+  /** The member being rated; null = a rating of the event itself. */
+  subject_member_id: string | null;
   rating: number;
   raw_comment: string | null;
   validated_comment: string | null;
@@ -57,7 +66,8 @@ export interface PlanEventResponse {
 /** Contract for POST /api/feedback/submit (backend, phase 3). */
 export interface SubmitFeedbackRequest {
   event_id: string;
-  member_id: string | null;
+  /** Member being rated; null = the event itself. The author comes from the auth token. */
+  subject_member_id: string | null;
   rating: number;
   comment: string;
 }
