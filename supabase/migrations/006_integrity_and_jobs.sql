@@ -5,6 +5,10 @@
 -- events.club_id, members.club_id, club_documents.club_id). The defect is the
 -- opposite: one cascade that destroys history. Run after 005.
 
+-- !! CORRECTED BY 009. The reasoning below is wrong and the SET NULL it applies to
+-- !! feedback.subject_member_id is a bug: a null subject means "a rating of the event
+-- !! itself", so deleting a member turned reviews about them into event ratings and
+-- !! moved event averages. 009 restores ON DELETE CASCADE for that column.
 -- ── 1. Deleting a member must not rewrite past event ratings ───────────
 -- 002 made feedback.subject_member_id `on delete cascade`, so removing a
 -- departed member DELETED every rating row naming them -- which fires

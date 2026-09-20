@@ -123,6 +123,7 @@ prompt in `gemini_client.py` forces tool calls for anything actionable, and
 | POST   | `/events/{id}/complete`  | leader marks event completed; 409 unless every task is done |
 | GET    | `/tasks?event_id=`       | list tasks for an event                   |
 | POST   | `/tasks`                 | leader creates a task (persisted)         |
+| POST   | `/me/delete`             | delete your own account and profile (email must be typed to confirm; 409 if you're a club's only leader) |
 | PATCH  | `/tasks/{id}`            | status / priority / assignee; members may only move their own task's status |
 | POST   | `/agent/command`         | **the agent** — NL in, DB mutation out    |
 | POST   | `/api/events/plan`       | queue a plan; returns `202 {job_id}`      |
@@ -165,6 +166,7 @@ ALLOWED_HOSTS=["*"]              # set explicitly in production
 #   supabase/migrations/006_integrity_and_jobs.sql
 #   supabase/migrations/007_rag_thresholds.sql
 #   supabase/migrations/008_signup_role_choice.sql  <- role picker at sign-up
+#   supabase/migrations/009_account_deletion.sql    <- account deletion cascade + trigger fix
 
 # 2. Backend
 cd backend
