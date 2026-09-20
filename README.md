@@ -38,6 +38,20 @@ cp .env.local.example .env.local   # fill in NEXT_PUBLIC_* keys
 npm run dev
 ```
 
+## Theming
+
+The whole look (light and dark) lives in one place: the `:root` and `.dark` blocks at the
+top of `frontend/app/globals.css`, in the format [tweakcn](https://tweakcn.com) exports for
+shadcn/ui on Tailwind v3. To re-skin the app, design a theme in tweakcn, pick **Tailwind v3**
+in its Code panel, and paste its two blocks over the existing ones. Keep the eight status
+lines (`--success`, `--warning`, `--danger`, `--info` and their `-foreground` twins); a
+tweakcn export doesn't include them and the badges need them.
+
+Colours are HSL channels (`243 75% 59%`), never a full colour, so opacity modifiers like
+`bg-primary/10` keep working. Text on a tinted badge must stay readable in both themes, so
+re-check contrast after changing a colour. The dark/light toggle is in the header and
+remembers the choice.
+
 Open http://localhost:3000 — the seeded "HackNight 2026" event should be
 there. Open it, and in the agent bar try:
 
