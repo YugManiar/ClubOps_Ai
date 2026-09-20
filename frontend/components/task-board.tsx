@@ -55,11 +55,7 @@ export function TaskBoard({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  // "New task" is local-state only (ids are `local-N`, never saved), so those
-  // must not count: the server has never heard of them and will not see them
-  // when it checks whether every task is done.
-  const persisted = useMemo(() => tasks.filter((t) => !t.id.startsWith("local-")), [tasks]);
-  const doneCount = persisted.filter((t) => t.status === "done").length;
+  const doneCount = tasks.filter((t) => t.status === "done").length;
 
   const memberById = (id: string | null) => members.find((m) => m.id === id) ?? null;
   const selected = tasks.find((t) => t.id === selectedId) ?? null;
@@ -75,38 +71,37 @@ export function TaskBoard({
     [tasks, query, priority, mineOnly]
   );
 
-  // Optimistic update; status is persisted through PATCH /tasks/{id} and rolled
-  // back on failure. Priority/assignee edits are still local-only (the backend
-  // PATCH only accepts status).
-  async function moveTask(id: string, status: TaskStatus) {
-    const previous = tasks.find((t) => t.id === id)?.status;
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+  // Every edit is optimistic and persisted through PATCH /tasks/{id}; on failure
+  // the previous values are restored and the server's message is shown. Without
+  // the round trip an assignment only lived in this browser tab and was gone
+  // after a reload.
+  async function updateTask(
+    id: string,
+    patch: Pick<Partial<Task>, "status" | "priority" | "assignee_id">
+  ) {
+    const before = tasks.find((t) => t.id === id);
+    if (!before) return;
+    const previous = {
+      ...(patch.status !== undefined && { status: before.status }),
+      ...(patch.priority !== undefined && { priority: before.priority }),
+      ...(patch.assignee_id !== undefined && { assignee_id: before.assignee_id }),
+    };
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     setSaveError(null);
     try {
-      await api.patch(`/tasks/${id}`, { status });
+      await api.patch(`/tasks/${id}`, patch);
     } catch (err) {
-      if (previous) setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: previous } : t)));
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...previous } : t)));
       setSaveError(err instanceof Error ? err.message : "Could not save the change.");
     }
   }
 
-  function updateTask(id: string, patch: Partial<Task>) {
-    if (patch.status) return void moveTask(id, patch.status);
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-  }
+  const moveTask = (id: string, status: TaskStatus) => updateTask(id, { status });
 
-  function addTask(task: Pick<Task, "title" | "description" | "priority" | "assignee_id">) {
-    setTasks((prev) => [
-      ...prev,
-      {
-        ...task,
-        id: `local-${prev.length + 1}`,
-        event_id: eventId,
-        status: "todo",
-        due_date: null,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+  /** Throws on failure so the dialog can stay open and show why. */
+  async function addTask(task: Pick<Task, "title" | "description" | "priority" | "assignee_id">) {
+    const created = await api.post<Task>("/tasks", { ...task, event_id: eventId });
+    setTasks((prev) => [...prev, created]);
   }
 
   return (
@@ -116,7 +111,7 @@ export function TaskBoard({
           eventId={eventId}
           status={eventStatus}
           done={doneCount}
-          total={persisted.length}
+          total={tasks.length}
         />
       )}
       {saveError && (
@@ -154,9 +149,11 @@ export function TaskBoard({
         >
           My tasks
         </Button>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="mr-1 h-4 w-4" /> New task
-        </Button>
+        {isLeader && (
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="mr-1 h-4 w-4" /> New task
+          </Button>
+        )}
       </div>
 
       {/* Columns stack on mobile, 2-up on tablet, 4-up on desktop */}
@@ -274,6 +271,7 @@ export function TaskBoard({
                   <select
                     className={selectClass}
                     value={selected.priority}
+                    disabled={!isLeader}
                     onChange={(e) =>
                       updateTask(selected.id, { priority: e.target.value as TaskPriority })
                     }
@@ -290,6 +288,7 @@ export function TaskBoard({
                   <select
                     className={selectClass}
                     value={selected.assignee_id ?? ""}
+                    disabled={!isLeader}
                     onChange={(e) => updateTask(selected.id, { assignee_id: e.target.value || null })}
                   >
                     <option value="">Unassigned</option>
@@ -325,27 +324,38 @@ function NewTaskDialog({
   open: boolean;
   members: Member[];
   onOpenChange: (open: boolean) => void;
-  onCreate: (task: Pick<Task, "title" | "description" | "priority" | "assignee_id">) => void;
+  onCreate: (task: Pick<Task, "title" | "description" | "priority" | "assignee_id">) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [assignee, setAssignee] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
-    onCreate({
-      title: title.trim(),
-      description: description.trim() || null,
-      priority,
-      assignee_id: assignee || null,
-    });
-    setTitle("");
-    setDescription("");
-    setPriority("medium");
-    setAssignee("");
-    onOpenChange(false);
+    setBusy(true);
+    setError(null);
+    try {
+      await onCreate({
+        title: title.trim(),
+        description: description.trim() || null,
+        priority,
+        assignee_id: assignee || null,
+      });
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setAssignee("");
+      onOpenChange(false);
+    } catch (err) {
+      // Stay open: closing here would throw away what the leader just typed.
+      setError(err instanceof Error ? err.message : "Could not create the task.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -354,7 +364,7 @@ function NewTaskDialog({
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>New task</DialogTitle>
-            <DialogDescription>Added to the To do column (local state only).</DialogDescription>
+            <DialogDescription>Saved to this event and added to the To do column.</DialogDescription>
           </DialogHeader>
           <Input
             placeholder="Task title"
@@ -394,12 +404,17 @@ function NewTaskDialog({
               ))}
             </select>
           </div>
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim()}>
-              Create task
+            <Button type="submit" disabled={!title.trim() || busy}>
+              {busy ? "Saving..." : "Create task"}
             </Button>
           </DialogFooter>
         </form>
