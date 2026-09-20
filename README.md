@@ -19,6 +19,7 @@ first.
 #      supabase/migrations/006_integrity_and_jobs.sql
 #      supabase/migrations/007_rag_thresholds.sql
 #      supabase/migrations/008_signup_role_choice.sql  # leader/member at signup
+#      supabase/migrations/009_account_deletion.sql    # delete-account cascade + trigger fix
 
 # 2. Backend
 cd backend
