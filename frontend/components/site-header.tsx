@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Sparkles } from "lucide-react";
+import { LayoutDashboard, Sparkles, UserRound } from "lucide-react";
 
 import { SignOutButton } from "@/components/sign-out-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,6 +33,16 @@ export function SiteHeader({ member }: { member: Member }) {
           >
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
+          </Link>
+          <Link
+            href="/profile"
+            className={cn(
+              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted",
+              pathname.startsWith("/profile") && "bg-muted text-foreground"
+            )}
+          >
+            <UserRound className="h-4 w-4" />
+            <span className="hidden sm:inline">Profile</span>
           </Link>
         </nav>
         <Badge variant={member.role === "leader" ? "default" : "muted"}>{member.role}</Badge>
