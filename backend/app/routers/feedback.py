@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.auth import CurrentUser, require_leader
 from app.db import supabase
+from app.limits import limiter
 from app.services.access import require_event_in_club
 from app.services.feedback import submit_feedback
 from app.services.gemini import GeminiError
@@ -30,7 +31,12 @@ class FeedbackResponse(BaseModel):
 
 
 @router.post("/submit", response_model=FeedbackResponse)
-def submit(body: FeedbackRequest, user: CurrentUser = Depends(require_leader)):
+@limiter.limit("20/minute")  # one Gemini validation call per submission
+def submit(
+    request: Request,  # required by slowapi
+    body: FeedbackRequest,
+    user: CurrentUser = Depends(require_leader),
+):
     """Leaders only (members get 403). Gemini checks the comment before the score is written."""
     require_event_in_club(body.event_id, user.club_id)
 
