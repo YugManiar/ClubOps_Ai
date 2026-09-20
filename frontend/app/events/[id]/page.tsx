@@ -8,19 +8,20 @@ import { StarDisplay } from "@/components/star-rating";
 import { TaskBoard } from "@/components/task-board";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { currentMemberId, getEventDetail } from "@/lib/data";
+import { getCurrentMember, getEventDetail } from "@/lib/data";
 import { EVENT_STATUS, formatDate } from "@/lib/ui-meta";
 
 export const dynamic = "force-dynamic";
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
+  const me = await getCurrentMember();
   const detail = await getEventDetail(params.id);
-  if (!detail) notFound();
+  if (!me || !detail) notFound();
+  const isLeader = me.role === "leader";
   const { event, tasks, feedback, members } = detail;
 
   const status = EVENT_STATUS[event.status];
-  const memberId = currentMemberId(members);
-  const nameOf = (id: string | null) => members.find((m) => m.id === id)?.full_name ?? "Anonymous";
+  const nameOf = (id: string | null) => members.find((m) => m.id === id)?.full_name ?? "a member";
 
   return (
     <main className="space-y-6">
@@ -55,17 +56,23 @@ export default async function EventDetailPage({ params }: { params: { id: string
           ) : (
             <span className="text-sm text-muted-foreground">No ratings yet</span>
           )}
-          <FeedbackDialog eventId={event.id} memberId={memberId} />
+          {isLeader && (
+            <FeedbackDialog
+              events={[event]}
+              defaultEventId={event.id}
+              members={members.filter((m) => m.role === "member")}
+            />
+          )}
         </div>
       </div>
 
-      <AgentCommandBar eventId={event.id} />
+      {isLeader && <AgentCommandBar eventId={event.id} />}
 
       <TaskBoard
         eventId={event.id}
         initialTasks={tasks}
         members={members}
-        currentMemberId={memberId}
+        currentMemberId={me.id}
       />
 
       {feedback.length > 0 && (
@@ -76,7 +83,9 @@ export default async function EventDetailPage({ params }: { params: { id: string
               <CardContent className="space-y-1 p-4 pt-4">
                 <div className="flex items-center gap-2 text-sm">
                   <StarDisplay value={f.rating} />
-                  <span className="font-medium">{nameOf(f.member_id)}</span>
+                  <span className="font-medium">
+                    {f.subject_member_id ? `About ${nameOf(f.subject_member_id)}` : "About the event"}
+                  </span>
                 </div>
                 {(f.validated_comment ?? f.raw_comment) && (
                   <p className="text-sm text-muted-foreground">{f.validated_comment ?? f.raw_comment}</p>

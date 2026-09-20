@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 
 import { CreateEventDialog } from "@/components/create-event-dialog";
 import { EventCard } from "@/components/event-card";
+import { StarDisplay } from "@/components/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,10 +21,12 @@ export function DashboardView({
   events,
   tasks,
   members,
+  children,
 }: {
   events: ClubEvent[];
   tasks: Task[];
   members: Member[];
+  children?: React.ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -127,8 +130,14 @@ export function DashboardView({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{m.full_name}</p>
                       <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                      {m.rating_count > 0 && (
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <StarDisplay value={m.average_rating} className="scale-75 origin-left" />
+                          {m.average_rating.toFixed(1)}
+                        </p>
+                      )}
                     </div>
-                    <Badge variant={m.role === "lead" ? "default" : "muted"}>{m.role}</Badge>
+                    <Badge variant={m.role === "leader" ? "default" : "muted"}>{m.role}</Badge>
                   </li>
                 ))}
               </ul>
@@ -136,6 +145,8 @@ export function DashboardView({
           </Card>
         </aside>
       </div>
+
+      {children}
     </main>
   );
 }
