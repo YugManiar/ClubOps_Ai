@@ -4,3 +4,4 @@ supabase>=2.15
 pydantic>=2.9
 pydantic-settings>=2.5
 google-genai>=1.20
+pyjwt[crypto]>=2.8
