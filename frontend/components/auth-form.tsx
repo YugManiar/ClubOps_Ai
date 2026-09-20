@@ -72,6 +72,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [checkEmail, setCheckEmail] = useState(false);
 
   const isSignup = mode === "signup";
+  // /login?deleted=1 is where DeleteAccount sends people once the account is gone.
+  const justDeleted = !isSignup && params.get("deleted") === "1";
 
   /** Look up the role for a fresh session and send the user to the right dashboard. */
   async function routeByRole(userId: string) {
@@ -242,6 +244,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 </label>
               )}
 
+              {justDeleted && !error && (
+                <p role="status" className="text-sm text-success">
+                  Your account has been deleted.
+                </p>
+              )}
               {error && (
                 <p role="alert" className="text-sm text-red-600">
                   {error}
